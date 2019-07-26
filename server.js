@@ -6,6 +6,11 @@ const app = express();
 // Connect Database
 connectDB();
 
+// Init Middleware
+// extended false, the URL-encoded data will be parsed with the querystring library
+//query string library does not support creating a nested object from your query string and will filter out '?' from the query string
+app.use(express.json({ extended: false }));
+
 app.get('/', (req, res) => {
   res.send('API Running');
 });
