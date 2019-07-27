@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../../middleware/auth');
 const { check, validationResult } = require('express-validator/check');
+const jwt = require('jsonwebtoken');
+const config = require('config');
 
 const Profile = require('../../models/Profile');
 const User = require('../../models/User');
@@ -51,6 +53,15 @@ router.post(
   ],
   async (req, res) => {
     const errors = validationResult(req);
+
+    const token = req.header('x-auth-token');
+    const decoded = jwt.verify(token, config.get('jwtSecret'));
+    const validToken = await User.findById(decoded.user.id);
+
+    if (!validToken) {
+      return res.status(400).json('Invalid Token, Authorization Denied');
+    }
+
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
@@ -113,5 +124,59 @@ router.post(
     }
   }
 );
+
+// @route   GET api/profile/
+// @desc    Get all profiles
+// @access  Public
+
+router.get('/', async (req, res) => {
+  try {
+    const profiles = await Profile.find().populate('user', ['name', 'avatar']);
+    res.json(profiles);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/profile/user/:user_id
+// @desc    Get profile by user ID
+// @access  Public
+
+router.get('/user/:user_id', async (req, res) => {
+  try {
+    const profile = await Profile.findOne({
+      user: req.params.user_id
+    }).populate('user', ['name', 'avatar']);
+    if (!profile) return res.status(400).json({ msg: 'Profile not found' });
+    res.json(profile);
+  } catch (err) {
+    console.error(err.message);
+
+    if (err.kind === 'ObjectId') {
+      return res.status(400).json({ msg: 'Profile not found' });
+    }
+
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   DELETE api/profile/
+// @desc    Delete profile, user & posts
+// @access  Private
+
+router.delete('/', auth, async (req, res) => {
+  try {
+    //@todo - remove user's posts
+    // Remove profile
+    await Profile.deleteOne({ user: req.user.id });
+    // Remove User
+    await User.deleteOne({ _id: req.user.id });
+    res.json({ msg: 'User deleted' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
 
 module.exports = router;
