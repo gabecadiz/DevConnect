@@ -16,8 +16,7 @@ const Dashboard = ({
 }) => {
   useEffect(() => {
     getCurrentProfile();
-    // eslint-disable-next-line
-  }, []);
+  }, [getCurrentProfile]);
   return loading && profile === null ? (
     <Spinner />
   ) : (
@@ -35,7 +34,7 @@ const Dashboard = ({
           <Education education={profile.education} />
           <div className='my-2'>
             <button className='btn btn-danger' onClick={() => deleteAccount()}>
-              <i className='fas fa-user-minus' /> Delete My Account
+              <i className='fas fa-user' /> Delete My Account
             </button>
           </div>
         </Fragment>
